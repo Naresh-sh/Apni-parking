@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "943224017139",
+    "project_id": "where-is-my-parking-aa36d",
+    "storage_bucket": "where-is-my-parking-aa36d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:943224017139:android:4e025ff60e4e5428a66786",
+        "android_client_info": {
+          "package_name": "com.surajpole.parkingfinder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAc-AsPJf1d2XVgI7P4w-eaCdeglrzLYuY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
