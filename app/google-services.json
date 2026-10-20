@@ -12,7 +12,20 @@
           "package_name": "com.surajpole.parkingfinder"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "943224017139-iir3bpc932bjcia9172frt1q5lb2i21o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.surajpole.parkingfinder",
+            "certificate_hash": "381d640f2e3587791757f0150eb2c4549cd2c7f1"
+          }
+        },
+        {
+          "client_id": "943224017139-6boh9oom154fickdtpg8d0ldk58en7fj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAc-AsPJf1d2XVgI7P4w-eaCdeglrzLYuY"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "943224017139-0lqmbianj8nb3j1og09mgpbva5llee6m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
