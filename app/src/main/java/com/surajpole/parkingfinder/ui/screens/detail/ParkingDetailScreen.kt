@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.surajpole.parkingfinder.data.local.Strings
 import com.surajpole.parkingfinder.data.model.ParkingLot
 import com.surajpole.parkingfinder.data.repository.ParkingRepository
 import com.surajpole.parkingfinder.ui.theme.AmberWarning
@@ -41,10 +42,10 @@ fun ParkingDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Parking Details", color = Color.White) },
+                title = { Text(Strings.get("details"), color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = Strings.get("back"), tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = NavyPrimary)
@@ -163,17 +164,17 @@ fun ParkingDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             SlotStatBox(
-                                label = "Total Slots",
+                                label = Strings.get("total_capacity"),
                                 value = lot.total_slots.toString(),
                                 color = NavyPrimary
                             )
                             SlotStatBox(
-                                label = "Filled",
+                                label = Strings.get("occupied"),
                                 value = lot.filled_slots.toString(),
                                 color = RedDanger
                             )
                             SlotStatBox(
-                                label = "Available",
+                                label = Strings.get("slots_available"),
                                 value = lot.availableSlots.toString(),
                                 color = EmeraldGreen
                             )
@@ -192,14 +193,14 @@ fun ParkingDetailScreen(
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Text(
-                            text = "Booking Guidelines",
+                            text = Strings.get("amenities"),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(10.dp))
-                        GuidelineItem(text = "• Booking holds your parking spot for 15 minutes.")
-                        GuidelineItem(text = "• If you do not arrive before timer ends, the slot automatically releases.")
-                        GuidelineItem(text = "• Real-time synchronization guarantees no double booking.")
+                        GuidelineItem(text = "• 15-minute real-time booking hold guarantee.")
+                        GuidelineItem(text = "• Magnet road-only turn-by-turn navigation available.")
+                        GuidelineItem(text = "• Real-time synchronization guarantees slot accuracy.")
                     }
                 }
 
@@ -221,11 +222,11 @@ fun ParkingDetailScreen(
                     if (lot.isFull) {
                         Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Parking Currently Full", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(Strings.get("full"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     } else {
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Book a Slot", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(Strings.get("reserve_slot"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.surajpole.parkingfinder.data.local.Strings
 import com.surajpole.parkingfinder.data.repository.AuthRepository
 import com.surajpole.parkingfinder.data.repository.ParkingRepository
 import com.surajpole.parkingfinder.ui.screens.home.HomeScreen
@@ -46,7 +47,7 @@ fun MainScreen(
                             contentDescription = "Home / Live Map"
                         )
                     },
-                    label = { Text("Home") },
+                    label = { Text(Strings.get("home")) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = NavyPrimary,
                         selectedTextColor = NavyPrimary,
@@ -61,10 +62,10 @@ fun MainScreen(
                     icon = {
                         Icon(
                             imageVector = if (selectedTab == 1) Icons.Filled.Person else Icons.Outlined.Person,
-                            contentDescription = "Profile"
+                            contentDescription = Strings.get("profile")
                         )
                     },
-                    label = { Text("Profile") },
+                    label = { Text(Strings.get("profile")) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = NavyPrimary,
                         selectedTextColor = NavyPrimary,

@@ -15,61 +15,222 @@ class ParkingRepository(
 ) {
     companion object {
         val DEFAULT_UDAIPUR_LOTS = listOf(
+            // City Center & Heritage Markets
             ParkingLot(
-                id = "sp_main",
-                name = "Surajpole Main Circle Parking",
+                id = "sp_surajpole",
+                name = "Surajpole Circle Multi-Level Parking",
                 latitude = 24.5804,
                 longitude = 73.6967,
-                total_slots = 40,
-                filled_slots = 18
+                total_slots = 60,
+                filled_slots = 24
             ),
             ParkingLot(
                 id = "sp_bapu_bazar",
-                name = "Bapu Bazar Entry Parking",
+                name = "Bapu Bazar Central Market Parking",
                 latitude = 24.5818,
                 longitude = 73.6945,
-                total_slots = 25,
-                filled_slots = 21
+                total_slots = 45,
+                filled_slots = 38
             ),
             ParkingLot(
-                id = "sp_delhigate",
-                name = "Delhi Gate Connector Parking",
+                id = "sp_delhi_gate",
+                name = "Delhi Gate Multi-Level Smart Parking",
                 latitude = 24.5850,
                 longitude = 73.6922,
-                total_slots = 50,
-                filled_slots = 12
-            ),
-            ParkingLot(
-                id = "sp_railway_link",
-                name = "Station Road Multilevel Parking",
-                latitude = 24.5765,
-                longitude = 73.7011,
                 total_slots = 80,
-                filled_slots = 35
+                filled_slots = 32
             ),
             ParkingLot(
                 id = "sp_hathipole",
-                name = "Hathipole Market Parking",
+                name = "Hathipole Artisan Market Parking",
                 latitude = 24.5880,
                 longitude = 73.6885,
-                total_slots = 45,
-                filled_slots = 28
-            ),
-            ParkingLot(
-                id = "sp_chetak_circle",
-                name = "Chetak Circle Public Parking",
-                latitude = 24.5930,
-                longitude = 73.6845,
-                total_slots = 60,
-                filled_slots = 15
+                total_slots = 50,
+                filled_slots = 29
             ),
             ParkingLot(
                 id = "sp_town_hall",
-                name = "Town Hall Link Parking",
+                name = "Town Hall & Nagar Nigam Complex",
                 latitude = 24.5833,
                 longitude = 73.6938,
+                total_slots = 70,
+                filled_slots = 22
+            ),
+            ParkingLot(
+                id = "sp_chetak",
+                name = "Chetak Circle Public Parking",
+                latitude = 24.5930,
+                longitude = 73.6845,
+                total_slots = 55,
+                filled_slots = 19
+            ),
+            ParkingLot(
+                id = "sp_court_circle",
+                name = "Court Circle Collectorate Parking",
+                latitude = 24.5872,
+                longitude = 73.6955,
+                total_slots = 65,
+                filled_slots = 41
+            ),
+            
+            // Heritage & Tourist Landmarks
+            ParkingLot(
+                id = "sp_city_palace",
+                name = "City Palace (Badi Pol) Royal Visitor Parking",
+                latitude = 24.5762,
+                longitude = 73.6842,
+                total_slots = 120,
+                filled_slots = 78
+            ),
+            ParkingLot(
+                id = "sp_jagdish_chowk",
+                name = "Jagdish Chowk & Gangaur Ghat Parking",
+                latitude = 24.5796,
+                longitude = 73.6828,
                 total_slots = 35,
-                filled_slots = 10
+                filled_slots = 30
+            ),
+            ParkingLot(
+                id = "sp_dudh_talai",
+                name = "Dudh Talai & Ropeway Base Parking",
+                latitude = 24.5702,
+                longitude = 73.6835,
+                total_slots = 85,
+                filled_slots = 44
+            ),
+            ParkingLot(
+                id = "sp_gulab_bagh",
+                name = "Gulab Bagh & Zoo North Gate Parking",
+                latitude = 24.5748,
+                longitude = 73.6942,
+                total_slots = 50,
+                filled_slots = 18
+            ),
+            ParkingLot(
+                id = "sp_moti_magri",
+                name = "Moti Magri & Maharana Pratap Memorial",
+                latitude = 24.5985,
+                longitude = 73.6812,
+                total_slots = 70,
+                filled_slots = 25
+            ),
+            ParkingLot(
+                id = "sp_saheliyon_bari",
+                name = "Saheliyon Ki Bari Tourist Parking",
+                latitude = 24.6042,
+                longitude = 73.6875,
+                total_slots = 90,
+                filled_slots = 49
+            ),
+            ParkingLot(
+                id = "sp_sukhadia_circle",
+                name = "Sukhadia Circle Chowpatty Parking",
+                latitude = 24.6025,
+                longitude = 73.6920,
+                total_slots = 75,
+                filled_slots = 36
+            ),
+
+            // Lakes & Scenic Hubs
+            ParkingLot(
+                id = "sp_fs_paal",
+                name = "Fateh Sagar Paal Lakeside Parking",
+                latitude = 24.5995,
+                longitude = 73.6738,
+                total_slots = 110,
+                filled_slots = 82
+            ),
+            ParkingLot(
+                id = "sp_fs_rani_road",
+                name = "Rani Road Lakeview Sunset Parking",
+                latitude = 24.6048,
+                longitude = 73.6652,
+                total_slots = 65,
+                filled_slots = 28
+            ),
+            ParkingLot(
+                id = "sp_sajjangarh_base",
+                name = "Sajjangarh Biological Park Base Parking",
+                latitude = 24.5935,
+                longitude = 73.6420,
+                total_slots = 95,
+                filled_slots = 35
+            ),
+
+            // Transit, Hospitals & Institutions
+            ParkingLot(
+                id = "sp_railway_station",
+                name = "Udaipur City Railway Station Main Gate",
+                latitude = 24.5765,
+                longitude = 73.7011,
+                total_slots = 130,
+                filled_slots = 88
+            ),
+            ParkingLot(
+                id = "sp_ranapratap_station",
+                name = "Rana Pratap Nagar Railway Station Parking",
+                latitude = 24.5912,
+                longitude = 73.7225,
+                total_slots = 60,
+                filled_slots = 21
+            ),
+            ParkingLot(
+                id = "sp_mb_hospital",
+                name = "MB Hospital (RNT College) Emergency Parking",
+                latitude = 24.5898,
+                longitude = 73.6958,
+                total_slots = 100,
+                filled_slots = 85
+            ),
+
+            // Shopping Malls & Suburbs
+            ParkingLot(
+                id = "sp_celebration_mall",
+                name = "Nexus Celebration Mall Multi-Level",
+                latitude = 24.6225,
+                longitude = 73.7115,
+                total_slots = 180,
+                filled_slots = 92
+            ),
+            ParkingLot(
+                id = "sp_urban_square",
+                name = "Urban Square Mall Multi-Level Parking",
+                latitude = 24.6360,
+                longitude = 73.7250,
+                total_slots = 250,
+                filled_slots = 115
+            ),
+            ParkingLot(
+                id = "sp_lake_city_mall",
+                name = "Lake City Mall Parking (Durga Nursery)",
+                latitude = 24.5905,
+                longitude = 73.7050,
+                total_slots = 90,
+                filled_slots = 42
+            ),
+            ParkingLot(
+                id = "sp_hiran_magri_sec4",
+                name = "Hiran Magri Sector 4 Commercial Hub",
+                latitude = 24.5720,
+                longitude = 73.7180,
+                total_slots = 50,
+                filled_slots = 15
+            ),
+            ParkingLot(
+                id = "sp_subhash_nagar",
+                name = "Sevashram Bridge & Subhash Nagar Parking",
+                latitude = 24.5775,
+                longitude = 73.7150,
+                total_slots = 40,
+                filled_slots = 12
+            ),
+            ParkingLot(
+                id = "sp_ahar_cenotaphs",
+                name = "Ahar Cenotaphs Heritage Museum Parking",
+                latitude = 24.5840,
+                longitude = 73.7190,
+                total_slots = 35,
+                filled_slots = 8
             )
         )
     }
@@ -203,71 +364,12 @@ class ParkingRepository(
         }
     }
 
-    // Helper to seed initial Surajpole parking lots if collection is empty
+    // Helper to seed initial Udaipur parking lots if collection is empty
     suspend fun seedInitialDataIfEmpty() {
         try {
             val snapshot = parkingCollection.limit(1).get().await()
             if (snapshot.isEmpty) {
-                val samples = listOf(
-                    ParkingLot(
-                        id = "sp_main",
-                        name = "Surajpole Main Circle Parking",
-                        latitude = 24.5804,
-                        longitude = 73.6967,
-                        total_slots = 40,
-                        filled_slots = 18
-                    ),
-                    ParkingLot(
-                        id = "sp_bapu_bazar",
-                        name = "Bapu Bazar Entry Parking",
-                        latitude = 24.5818,
-                        longitude = 73.6945,
-                        total_slots = 25,
-                        filled_slots = 21
-                    ),
-                    ParkingLot(
-                        id = "sp_delhigate",
-                        name = "Delhi Gate Connector Parking",
-                        latitude = 24.5850,
-                        longitude = 73.6922,
-                        total_slots = 50,
-                        filled_slots = 12
-                    ),
-                    ParkingLot(
-                        id = "sp_railway_link",
-                        name = "Station Road Multilevel Parking",
-                        latitude = 24.5765,
-                        longitude = 73.7011,
-                        total_slots = 80,
-                        filled_slots = 35
-                    ),
-                    ParkingLot(
-                        id = "sp_hathipole",
-                        name = "Hathipole Market Parking",
-                        latitude = 24.5880,
-                        longitude = 73.6885,
-                        total_slots = 45,
-                        filled_slots = 28
-                    ),
-                    ParkingLot(
-                        id = "sp_chetak_circle",
-                        name = "Chetak Circle Public Parking",
-                        latitude = 24.5930,
-                        longitude = 73.6845,
-                        total_slots = 60,
-                        filled_slots = 15
-                    ),
-                    ParkingLot(
-                        id = "sp_town_hall",
-                        name = "Town Hall Link Parking",
-                        latitude = 24.5833,
-                        longitude = 73.6938,
-                        total_slots = 35,
-                        filled_slots = 10
-                    )
-                )
-
-                for (lot in samples) {
+                for (lot in DEFAULT_UDAIPUR_LOTS) {
                     parkingCollection.document(lot.id).set(lot).await()
                 }
             }

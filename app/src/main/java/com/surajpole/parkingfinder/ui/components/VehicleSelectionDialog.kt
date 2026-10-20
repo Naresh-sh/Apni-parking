@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.surajpole.parkingfinder.data.local.Strings
 import com.surajpole.parkingfinder.data.model.ParkingLot
 import com.surajpole.parkingfinder.ui.theme.EmeraldGreen
 import com.surajpole.parkingfinder.ui.theme.NavyPrimary
@@ -38,7 +39,7 @@ fun VehicleSelectionDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Select Vehicle Type",
+                    text = Strings.get("select_vehicle"),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -47,14 +48,14 @@ fun VehicleSelectionDialog(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Destination: ${parkingLot.name}",
+                    text = "${Strings.get("destination")}: ${parkingLot.name}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     maxLines = 1
                 )
 
                 Text(
-                    text = "Choose your vehicle for optimal road path & ETA:",
+                    text = Strings.get("vehicle_subtitle"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                     modifier = Modifier.padding(top = 4.dp)
@@ -65,9 +66,9 @@ fun VehicleSelectionDialog(
                 // 2-Wheeler Option
                 VehicleOptionCard(
                     icon = Icons.AutoMirrored.Filled.DirectionsBike,
-                    title = "2-Wheeler",
-                    subtitle = "Motorcycle, Scooter, Activa",
-                    badge = "Agile Routing",
+                    title = Strings.get("two_wheeler"),
+                    subtitle = Strings.get("two_wheeler_sub"),
+                    badge = Strings.get("agile_routing"),
                     color = EmeraldGreen,
                     onClick = { onVehicleSelected(true) }
                 )
@@ -77,9 +78,9 @@ fun VehicleSelectionDialog(
                 // 4-Wheeler Option
                 VehicleOptionCard(
                     icon = Icons.Default.DirectionsCar,
-                    title = "4-Wheeler",
-                    subtitle = "Car, Sedan, SUV, Auto",
-                    badge = "Main Roads",
+                    title = Strings.get("four_wheeler"),
+                    subtitle = Strings.get("four_wheeler_sub"),
+                    badge = Strings.get("main_roads"),
                     color = NavyPrimary,
                     onClick = { onVehicleSelected(false) }
                 )
@@ -90,7 +91,7 @@ fun VehicleSelectionDialog(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text(Strings.get("cancel"), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         }

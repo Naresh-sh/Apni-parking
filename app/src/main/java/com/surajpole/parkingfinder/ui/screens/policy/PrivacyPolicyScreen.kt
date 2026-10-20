@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.surajpole.parkingfinder.R
+import com.surajpole.parkingfinder.data.local.Strings
 import com.surajpole.parkingfinder.data.repository.ParkingRepository
 import com.surajpole.parkingfinder.data.service.MapPreloader
 import com.surajpole.parkingfinder.ui.theme.EmeraldGreen
@@ -89,7 +90,7 @@ fun PrivacyPolicyScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = "Apni Parking",
+                text = Strings.get("app_name"),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White
@@ -101,7 +102,7 @@ fun PrivacyPolicyScreen(
                 modifier = Modifier.padding(top = 6.dp)
             ) {
                 Text(
-                    text = "Transparency & Location Privacy",
+                    text = Strings.get("privacy_title"),
                     color = EmeraldGreen,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -120,14 +121,14 @@ fun PrivacyPolicyScreen(
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Why We Request Your Location",
+                        text = Strings.get("why_location"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "To deliver live turn-by-turn routing and connect you to the nearest available parking space in Udaipur, Apni Parking uses your device's high-precision GPS.",
+                        text = Strings.get("why_location_desc"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                         lineHeight = 20.sp
@@ -141,8 +142,8 @@ fun PrivacyPolicyScreen(
             PolicyFeatureItem(
                 icon = Icons.Default.MyLocation,
                 iconColor = EmeraldGreen,
-                title = "Nearest Slot Detection",
-                description = "Instantly calculates distances from your current spot to active parking lots around Surajpole, Delhi Gate, and Bapu Bazar."
+                title = Strings.get("nearest_slot"),
+                description = Strings.get("nearest_slot_desc")
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -150,8 +151,8 @@ fun PrivacyPolicyScreen(
             PolicyFeatureItem(
                 icon = Icons.Default.Navigation,
                 iconColor = NavyPrimary,
-                title = "Smart Road-Only Routing",
-                description = "Magnet road-matching ensures your 2-wheeler or 4-wheeler route stays on motorable streets, avoiding pedestrian lanes and shops."
+                title = Strings.get("smart_road"),
+                description = Strings.get("smart_road_desc")
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -159,8 +160,8 @@ fun PrivacyPolicyScreen(
             PolicyFeatureItem(
                 icon = Icons.Default.Timer,
                 iconColor = EmeraldGreen,
-                title = "Live ETA & Real-Time Sync",
-                description = "Smooth 1.5s coordinate sync keeps your ETA accurate so you reach before your 15-minute slot reservation hold expires."
+                title = Strings.get("eta_sync"),
+                description = Strings.get("eta_sync_desc")
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -168,8 +169,8 @@ fun PrivacyPolicyScreen(
             PolicyFeatureItem(
                 icon = Icons.Default.Lock,
                 iconColor = NavyPrimary,
-                title = "100% Privacy & Zero Tracking",
-                description = "Your location is processed locally in real-time during navigation only. It is never sold, shared, or stored on ad servers."
+                title = Strings.get("zero_tracking"),
+                description = Strings.get("zero_tracking_desc")
             )
 
             Spacer(modifier = Modifier.height(26.dp))
@@ -191,7 +192,7 @@ fun PrivacyPolicyScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Accept & Continue",
+                    text = Strings.get("accept_continue"),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White

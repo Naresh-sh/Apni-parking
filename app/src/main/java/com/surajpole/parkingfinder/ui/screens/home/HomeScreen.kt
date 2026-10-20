@@ -9,7 +9,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -18,14 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.LocalParking
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,23 +38,28 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.*
+import com.surajpole.parkingfinder.data.local.Strings
 import com.surajpole.parkingfinder.data.model.ParkingLot
 import com.surajpole.parkingfinder.data.repository.ParkingRepository
+import com.surajpole.parkingfinder.data.service.DeviceHeadingTracker
 import com.surajpole.parkingfinder.data.service.RoadRoutingService
 import com.surajpole.parkingfinder.data.service.RouteResult
+import com.surajpole.parkingfinder.data.service.rememberDeviceHeading
 import com.surajpole.parkingfinder.ui.components.MapMarkerUtils
 import com.surajpole.parkingfinder.ui.components.VehicleSelectionDialog
 import com.surajpole.parkingfinder.ui.theme.EmeraldGreen
 import com.surajpole.parkingfinder.ui.theme.NavyPrimary
 import com.surajpole.parkingfinder.ui.theme.RedDanger
 import kotlinx.coroutines.launch
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
     parkingRepository: ParkingRepository,
@@ -78,14 +75,19 @@ fun HomeScreen(
         position = CameraPosition.fromLatLngZoom(surajpoleLatLng, 15f)
     }
 
-    // Parking lots from Firestore
-    val parkingLots by parkingRepository.observeParkingLots().collectAsState(initial = emptyList())
+    // Parking lots from Firestore (with immediate default fallback cache)
+    val parkingLots by parkingRepository.observeParkingLots().collectAsState(
+        initial = ParkingRepository.DEFAULT_UDAIPUR_LOTS
+    )
 
-    // Map Type toggle: Normal, Satellite, Hybrid
+    // Map Type toggle: Only Default (NORMAL) and HYBRID as requested
     var currentMapType by remember { mutableStateOf(MapType.NORMAL) }
 
     // Live User Location state
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
+
+    // Gyroscope / Compass Heading for Directional Beam
+    val deviceHeading by rememberDeviceHeading()
 
     // Routing and vehicle state
     var pendingParkingForVehicle by remember { mutableStateOf<ParkingLot?>(null) }
@@ -93,6 +95,12 @@ fun HomeScreen(
     var navigatingLot by remember { mutableStateOf<ParkingLot?>(null) }
     var isTwoWheelerSelected by remember { mutableStateOf(false) }
     var isRoutingLoading by remember { mutableStateOf(false) }
+    var is3DCameraMode by remember { mutableStateOf(false) }
+
+    // Derived zoom state for smart markers (High FPS, avoids recalculation)
+    val isZoomedIn by remember {
+        derivedStateOf { cameraPositionState.position.zoom >= 14.8f }
+    }
 
     // Location permissions
     val locationPermissionsState = rememberMultiplePermissionsState(
@@ -104,15 +112,15 @@ fun HomeScreen(
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    // Fast and smooth GPS polling: updates every 1.5 - 2 seconds as requested
+    // High FPS smooth GPS polling: updates every 1.5s
     DisposableEffect(locationPermissionsState.allPermissionsGranted) {
         if (locationPermissionsState.allPermissionsGranted) {
             val locationRequest = LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY,
-                2000L // 2.0 sec interval
+                2000L
             ).apply {
-                setMinUpdateIntervalMillis(1500L) // 1.5 sec fastest interval
-                setMinUpdateDistanceMeters(1.0f) // 1 meter sensitivity
+                setMinUpdateIntervalMillis(1500L)
+                setMinUpdateDistanceMeters(1.0f)
                 setWaitForAccurateLocation(false)
             }.build()
 
@@ -131,17 +139,13 @@ fun HomeScreen(
                     locationCallback,
                     Looper.getMainLooper()
                 )
-
-                // Fast initial fix
                 fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
                     loc?.let {
                         val initLatLng = LatLng(it.latitude, it.longitude)
                         userLocation = initLatLng
                     }
                 }
-            } catch (e: SecurityException) {
-                // Permission not granted
-            }
+            } catch (_: SecurityException) {}
 
             onDispose {
                 fusedLocationClient.removeLocationUpdates(locationCallback)
@@ -151,49 +155,46 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        locationPermissionsState.launchMultiplePermissionRequest()
-        parkingRepository.seedInitialDataIfEmpty()
-    }
-
     // Vehicle Selection Dialog
     pendingParkingForVehicle?.let { lot ->
         VehicleSelectionDialog(
             parkingLot = lot,
             onDismiss = { pendingParkingForVehicle = null },
             onVehicleSelected = { isTwoWheeler ->
-                pendingParkingForVehicle = null
                 isTwoWheelerSelected = isTwoWheeler
-                navigatingLot = lot
+                val targetLot = pendingParkingForVehicle ?: lot
+                pendingParkingForVehicle = null
 
                 val startPoint = userLocation ?: surajpoleLatLng
-                val destPoint = LatLng(lot.latitude, lot.longitude)
+                val endPoint = LatLng(targetLot.latitude, targetLot.longitude)
 
                 isRoutingLoading = true
                 coroutineScope.launch {
                     val route = RoadRoutingService.getRoadRoute(
                         origin = startPoint,
-                        destination = destPoint,
+                        destination = endPoint,
                         isTwoWheeler = isTwoWheeler
                     )
                     activeRoute = route
+                    navigatingLot = targetLot
                     isRoutingLoading = false
 
-                    // Camera animate to show whole route smoothly
+                    // Auto-frame route smoothly
                     try {
-                        val builder = LatLngBounds.Builder()
-                        route.points.forEach { builder.include(it) }
-                        builder.include(startPoint)
-                        builder.include(destPoint)
-                        val bounds = builder.build()
+                        val boundsBuilder = LatLngBounds.builder()
+                        boundsBuilder.include(startPoint)
+                        boundsBuilder.include(endPoint)
+                        route.points.forEach { boundsBuilder.include(it) }
+                        val bounds = boundsBuilder.build()
+
                         cameraPositionState.animate(
-                            CameraUpdateFactory.newLatLngBounds(bounds, 120),
-                            durationMs = 900
-                        )
-                    } catch (e: Exception) {
-                        cameraPositionState.animate(
-                            CameraUpdateFactory.newLatLngZoom(startPoint, 15f),
+                            CameraUpdateFactory.newLatLngBounds(bounds, 140),
                             durationMs = 800
+                        )
+                    } catch (_: Exception) {
+                        cameraPositionState.animate(
+                            CameraUpdateFactory.newLatLngZoom(startPoint, 15.5f),
+                            durationMs = 700
                         )
                     }
                 }
@@ -201,286 +202,287 @@ fun HomeScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = com.surajpole.parkingfinder.R.drawable.app_logo),
-                            contentDescription = "Logo",
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Apni Parking",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = if (userLocation != null) "GPS Live Sync (1.5s)" else "Smart Live Tracking",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (userLocation != null) EmeraldGreen else Color.White.copy(alpha = 0.8f),
-                                fontWeight = if (userLocation != null) FontWeight.SemiBold else FontWeight.Normal
+    // Clean, Full-Screen Map (Top bar removed per user request!)
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Google Map View (High FPS with Latest Vector Renderer)
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(
+                mapType = currentMapType,
+                isMyLocationEnabled = false // Custom directional beacon dot used instead
+            ),
+            uiSettings = MapUiSettings(
+                myLocationButtonEnabled = false,
+                zoomControlsEnabled = false,
+                compassEnabled = true
+            )
+        ) {
+            // Cute & Attractive Parking Markers with Zoom-Dependent Names
+            parkingLots.forEach { lot ->
+                val markerState = rememberMarkerState(
+                    key = "lot_${lot.id}",
+                    position = LatLng(lot.latitude, lot.longitude)
+                )
+
+                val descriptor = remember(lot.id, lot.availableSlots, isZoomedIn) {
+                    MapMarkerUtils.getCuteParkingDescriptor(lot, isZoomedIn)
+                }
+
+                Marker(
+                    state = markerState,
+                    title = lot.name,
+                    snippet = "${lot.availableSlots} / ${lot.total_slots} ${Strings.get("slots_available")}",
+                    icon = descriptor,
+                    onClick = {
+                        pendingParkingForVehicle = lot
+                        true
+                    }
+                )
+            }
+
+            // Google Maps-Style Directional User Dot (Compass & Gyroscope Fusion)
+            userLocation?.let { loc ->
+                val userMarkerState = rememberMarkerState(key = "user_gps_host", position = loc)
+                LaunchedEffect(loc) {
+                    userMarkerState.position = loc
+                }
+
+                Marker(
+                    state = userMarkerState,
+                    title = Strings.get("gps_live"),
+                    snippet = Strings.get("compass_active"),
+                    icon = remember { MapMarkerUtils.getUserDirectionalDescriptor() },
+                    anchor = Offset(0.5f, 0.5f),
+                    flat = true,
+                    rotation = deviceHeading ?: 0f
+                )
+            }
+
+            // Road-snapped Shortest Path (Magnet Effect)
+            activeRoute?.let { route ->
+                Polyline(
+                    points = route.points,
+                    color = Color(0xFF2563EB), // Vibrant Electric Royal Blue
+                    width = 14f,
+                    geodesic = true
+                )
+            }
+        }
+
+        // Floating Minimal Top Status Bar (Translucent glass pill, replaces heavy top app bar)
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = 10.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = com.surajpole.parkingfinder.R.drawable.app_logo),
+                    contentDescription = "Logo",
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = Strings.get("app_name"),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Surface(
+                    shape = CircleShape,
+                    color = if (userLocation != null) EmeraldGreen else Color.Gray,
+                    modifier = Modifier.size(7.dp)
+                ) {}
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = if (userLocation != null) Strings.get("gps_live") else Strings.get("smart_tracking"),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (userLocation != null) EmeraldGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
+
+        // Floating Side Controls: Map Layer Toggle & Current Location FAB
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(top = 10.dp, end = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Profile Quick Shortcut
+            FloatingActionButton(
+                onClick = onNavigateToProfile,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = NavyPrimary,
+                shape = CircleShape,
+                modifier = Modifier.size(46.dp),
+                elevation = FloatingActionButtonDefaults.elevation(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Profile",
+                    tint = NavyPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            // Map Layer Toggle FAB: Only Normal <-> Hybrid as requested
+            FloatingActionButton(
+                onClick = {
+                    currentMapType = if (currentMapType == MapType.NORMAL) MapType.HYBRID else MapType.NORMAL
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = NavyPrimary,
+                shape = CircleShape,
+                modifier = Modifier.size(46.dp),
+                elevation = FloatingActionButtonDefaults.elevation(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Layers,
+                    contentDescription = "Map Layer",
+                    tint = if (currentMapType == MapType.HYBRID) EmeraldGreen else NavyPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            // Recenter Live Location FAB
+            FloatingActionButton(
+                onClick = {
+                    if (locationPermissionsState.allPermissionsGranted) {
+                        val target = userLocation ?: surajpoleLatLng
+                        coroutineScope.launch {
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newLatLngZoom(target, 16.5f),
+                                durationMs = 600
                             )
                         }
+                    } else {
+                        locationPermissionsState.launchMultiplePermissionRequest()
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = NavyPrimary),
-                actions = {
-                    // Recenter camera
-                    IconButton(onClick = {
-                        coroutineScope.launch {
-                            val target = userLocation ?: surajpoleLatLng
-                            cameraPositionState.animate(
-                                CameraUpdateFactory.newLatLngZoom(target, 16f),
-                                durationMs = 800
-                            )
-                        }
-                    }) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Recenter",
-                            tint = Color.White
-                        )
-                    }
-                    // Profile button
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(
-                            Icons.Default.AccountCircle,
-                            contentDescription = "Profile",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            // Google Map View (High FPS, smooth rendering)
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState,
-                properties = MapProperties(
-                    mapType = currentMapType,
-                    isMyLocationEnabled = false // Disabled default blue dot in favor of custom host radar dot
-                ),
-                uiSettings = MapUiSettings(
-                    myLocationButtonEnabled = false,
-                    zoomControlsEnabled = false,
-                    compassEnabled = true
-                )
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = NavyPrimary,
+                shape = CircleShape,
+                modifier = Modifier.size(46.dp),
+                elevation = FloatingActionButtonDefaults.elevation(4.dp)
             ) {
-                // Red pins for all parking lots
-                parkingLots.forEach { lot ->
-                    val markerState = rememberMarkerState(
-                        key = "lot_${lot.id}",
-                        position = LatLng(lot.latitude, lot.longitude)
+                Icon(
+                    imageVector = Icons.Default.MyLocation,
+                    contentDescription = "My Location",
+                    tint = NavyPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+
+        // Active Route Card with 3D Navigation Angles
+        AnimatedVisibility(
+            visible = activeRoute != null && navigatingLot != null,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            activeRoute?.let { route ->
+                navigatingLot?.let { lot ->
+                    ActiveRouteCard(
+                        parkingLot = lot,
+                        route = route,
+                        isTwoWheeler = isTwoWheelerSelected,
+                        is3DMode = is3DCameraMode,
+                        onToggle3D = {
+                            is3DCameraMode = !is3DCameraMode
+                            coroutineScope.launch {
+                                val current = userLocation ?: surajpoleLatLng
+                                val target = LatLng(lot.latitude, lot.longitude)
+                                val bearing = calculateBearing(current, target)
+
+                                if (is3DCameraMode) {
+                                    // 3D Driver Perspective view (55° tilt, destination-facing bearing)
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newCameraPosition(
+                                            CameraPosition(current, 17.5f, 55f, bearing)
+                                        ),
+                                        durationMs = 800
+                                    )
+                                } else {
+                                    // 2D Top-Down View
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newCameraPosition(
+                                            CameraPosition(current, 16f, 0f, 0f)
+                                        ),
+                                        durationMs = 700
+                                    )
+                                }
+                            }
+                        },
+                        onClose = {
+                            activeRoute = null
+                            navigatingLot = null
+                            is3DCameraMode = false
+                        },
+                        onProceedToDetail = {
+                            onNavigateToDetail(lot.id)
+                        }
                     )
-                    Marker(
-                        state = markerState,
-                        title = lot.name,
-                        snippet = "${lot.availableSlots} / ${lot.total_slots} Slots Available (Tap to route)",
-                        icon = BitmapDescriptorFactory.defaultMarker(
-                            if (lot.isFull) BitmapDescriptorFactory.HUE_RED else BitmapDescriptorFactory.HUE_AZURE
-                        ),
+                }
+            }
+        }
+
+        // Nearby Parking Carousel (visible when no route active)
+        AnimatedVisibility(
+            visible = activeRoute == null && parkingLots.isNotEmpty(),
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+        ) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(parkingLots) { lot ->
+                    ParkingQuickCard(
+                        lot = lot,
                         onClick = {
                             pendingParkingForVehicle = lot
-                            true
                         }
                     )
                 }
-
-                // Custom Unique Host Dot Marker & Pulsing Radar Circle
-                userLocation?.let { loc ->
-                    val userMarkerState = rememberMarkerState(key = "user_gps_host", position = loc)
-                    LaunchedEffect(loc) {
-                        userMarkerState.position = loc
-                    }
-
-                    Marker(
-                        state = userMarkerState,
-                        title = "Your Live GPS Position",
-                        snippet = "Accurate host position (Updated every 1.5s)",
-                        icon = remember { MapMarkerUtils.getUserLocationDescriptor() },
-                        anchor = Offset(0.5f, 0.5f)
-                    )
-
-                    // Electric Cyan pulse radar aura
-                    Circle(
-                        center = loc,
-                        radius = 28.0,
-                        fillColor = Color(0x3300E5FF),
-                        strokeColor = Color(0xFF00E5FF),
-                        strokeWidth = 2.5f
-                    )
-                }
-
-                // Road-snapped Shortest Path (Magnet Effect)
-                activeRoute?.let { route ->
-                    Polyline(
-                        points = route.points,
-                        color = Color(0xFF00B0FF), // Electric Blue
-                        width = 13f,
-                        geodesic = true
-                    )
-                }
             }
+        }
 
-            // Top Floating Controls: Satellite Toggle & Current Location FAB
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Route Calculation Spinner
+        if (isRoutingLoading) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color.Black.copy(alpha = 0.75f),
+                modifier = Modifier.align(Alignment.Center)
             ) {
-                // Satellite Mode Toggle FAB
-                FloatingActionButton(
-                    onClick = {
-                        currentMapType = when (currentMapType) {
-                            MapType.NORMAL -> MapType.SATELLITE
-                            MapType.SATELLITE -> MapType.HYBRID
-                            else -> MapType.NORMAL
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = NavyPrimary,
-                    shape = CircleShape,
-                    modifier = Modifier.size(46.dp)
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Layers,
-                        contentDescription = "Satellite Mode",
-                        tint = if (currentMapType != MapType.NORMAL) EmeraldGreen else NavyPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                // My Location FAB
-                FloatingActionButton(
-                    onClick = {
-                        if (locationPermissionsState.allPermissionsGranted) {
-                            val target = userLocation ?: surajpoleLatLng
-                            coroutineScope.launch {
-                                cameraPositionState.animate(
-                                    CameraUpdateFactory.newLatLngZoom(target, 16.5f),
-                                    durationMs = 700
-                                )
-                            }
-                        } else {
-                            locationPermissionsState.launchMultiplePermissionRequest()
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = NavyPrimary,
-                    shape = CircleShape,
-                    modifier = Modifier.size(46.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MyLocation,
-                        contentDescription = "Current Location",
-                        tint = NavyPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-
-            // Satellite Mode Indicator Badge
-            if (currentMapType != MapType.NORMAL) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.Black.copy(alpha = 0.7f),
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 16.dp)
-                ) {
-                    Text(
-                        text = if (currentMapType == MapType.SATELLITE) "🛰️ Satellite View" else "🛰️ Hybrid View",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-            }
-
-            // Active Route Navigation Bottom Card
-            AnimatedVisibility(
-                visible = activeRoute != null && navigatingLot != null,
-                enter = slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                activeRoute?.let { route ->
-                    navigatingLot?.let { lot ->
-                        ActiveRouteCard(
-                            parkingLot = lot,
-                            route = route,
-                            isTwoWheeler = isTwoWheelerSelected,
-                            onClose = {
-                                activeRoute = null
-                                navigatingLot = null
-                            },
-                            onProceedToDetail = {
-                                onNavigateToDetail(lot.id)
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Bottom horizontal carousel of nearby parking lots (shown when no route active)
-            AnimatedVisibility(
-                visible = activeRoute == null && parkingLots.isNotEmpty(),
-                enter = slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(parkingLots) { lot ->
-                        ParkingQuickCard(
-                            lot = lot,
-                            onClick = {
-                                pendingParkingForVehicle = lot
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Route Calculation Progress
-            if (isRoutingLoading) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color.Black.copy(alpha = 0.75f),
-                    modifier = Modifier.align(Alignment.Center)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("Finding shortest road path...", color = Color.White, fontSize = 14.sp)
-                    }
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Finding shortest road path...", color = Color.White, fontSize = 14.sp)
                 }
             }
         }
@@ -492,11 +494,13 @@ fun ActiveRouteCard(
     parkingLot: ParkingLot,
     route: RouteResult,
     isTwoWheeler: Boolean,
+    is3DMode: Boolean,
+    onToggle3D: () -> Unit,
     onClose: () -> Unit,
     onProceedToDetail: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
         modifier = Modifier.fillMaxWidth()
@@ -509,9 +513,9 @@ fun ActiveRouteCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color = (if (isTwoWheeler) EmeraldGreen else NavyPrimary).copy(alpha = 0.15f),
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(38.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
@@ -531,15 +535,15 @@ fun ActiveRouteCard(
                             maxLines = 1
                         )
                         Text(
-                            text = if (isTwoWheeler) "🏍️ 2-Wheeler Optimal Route" else "🚗 4-Wheeler Road Route",
+                            text = if (isTwoWheeler) Strings.get("two_wheeler") else Strings.get("four_wheeler"),
                             fontSize = 11.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
                 }
 
                 IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Clear Route", tint = Color.Gray)
+                    Icon(Icons.Default.Close, contentDescription = "Clear", tint = Color.Gray)
                 }
             }
 
@@ -560,18 +564,42 @@ fun ActiveRouteCard(
                         Text(route.durationText, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = EmeraldGreen)
                     }
                     Column {
-                        Text("Available", fontSize = 11.sp, color = Color.Gray)
-                        Text("${parkingLot.availableSlots} slots", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("Slots", fontSize = 11.sp, color = Color.Gray)
+                        Text("${parkingLot.availableSlots}", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
 
-                Button(
-                    onClick = onProceedToDetail,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                ) {
-                    Text("Book Slot", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // 3D / 2D Perspective Toggle Button as requested!
+                    OutlinedButton(
+                        onClick = onToggle3D,
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (is3DMode) Icons.Default.Explore else Icons.Default.Navigation,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (is3DMode) EmeraldGreen else NavyPrimary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (is3DMode) Strings.get("navigate_2d") else Strings.get("navigate_3d"),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = if (is3DMode) EmeraldGreen else NavyPrimary
+                        )
+                    }
+
+                    // Book Slot CTA
+                    Button(
+                        onClick = onProceedToDetail,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(Strings.get("reserve_slot"), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
                 }
             }
         }
@@ -587,16 +615,14 @@ fun ParkingQuickCard(
         modifier = Modifier
             .width(260.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -631,7 +657,7 @@ fun ParkingQuickCard(
             ) {
                 Column {
                     Text(
-                        text = "Available Slots",
+                        text = Strings.get("slots_available"),
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -648,7 +674,7 @@ fun ParkingQuickCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = if (lot.isFull) "FULL" else "TAP FOR ROUTE",
+                        text = if (lot.isFull) Strings.get("full") else Strings.get("start_navigation"),
                         color = if (lot.isFull) RedDanger else EmeraldGreen,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -658,4 +684,22 @@ fun ParkingQuickCard(
             }
         }
     }
+}
+
+/**
+ * Calculates bearing between two coordinates for dynamic 3D camera orientation
+ */
+private fun calculateBearing(start: LatLng, end: LatLng): Float {
+    val lat1 = Math.toRadians(start.latitude)
+    val lon1 = Math.toRadians(start.longitude)
+    val lat2 = Math.toRadians(end.latitude)
+    val lon2 = Math.toRadians(end.longitude)
+
+    val dLon = lon2 - lon1
+    val y = sin(dLon) * cos(lat2)
+    val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+
+    var bearing = Math.toDegrees(atan2(y, x)).toFloat()
+    if (bearing < 0) bearing += 360f
+    return bearing
 }

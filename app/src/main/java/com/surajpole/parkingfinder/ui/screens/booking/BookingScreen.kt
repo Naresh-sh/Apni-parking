@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.surajpole.parkingfinder.data.local.Strings
 import com.surajpole.parkingfinder.data.model.Booking
 import com.surajpole.parkingfinder.data.model.ParkingLot
 import com.surajpole.parkingfinder.data.repository.AuthRepository
@@ -77,10 +78,10 @@ fun BookingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (activeBooking == null) "Book Parking Slot" else "Active Reservation", color = Color.White) },
+                title = { Text(if (activeBooking == null) Strings.get("book_title") else Strings.get("active_reservation"), color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = Strings.get("back"), tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = NavyPrimary)
@@ -118,7 +119,7 @@ fun BookingScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Available Slots: ${lot.availableSlots}",
+                                text = "${Strings.get("slots_available")}: ${lot.availableSlots}",
                                 color = EmeraldGreen,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -129,7 +130,7 @@ fun BookingScreen(
                             OutlinedTextField(
                                 value = carNumber,
                                 onValueChange = { carNumber = it.uppercase() },
-                                label = { Text("Vehicle Plate Number (e.g. RJ27AB1234)") },
+                                label = { Text(Strings.get("car_number")) },
                                 leadingIcon = {
                                     Icon(Icons.Default.DirectionsCar, contentDescription = null)
                                 },
@@ -186,7 +187,7 @@ fun BookingScreen(
                         if (isLoading) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                         } else {
-                            Text("Confirm Booking (15 Mins Hold)", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(Strings.get("confirm_booking"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 } else {
@@ -253,7 +254,7 @@ fun BookingScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = if (isCancelledOrExpired) "RESERVATION EXPIRED" else "TIME REMAINING TO ARRIVE",
+                                        text = if (isCancelledOrExpired) "RESERVATION EXPIRED" else Strings.get("expires_in"),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isCancelledOrExpired) RedDanger else NavyPrimary
@@ -298,7 +299,7 @@ fun BookingScreen(
                                     modifier = Modifier.fillMaxWidth().height(48.dp),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Text("Cancel Booking Early", fontWeight = FontWeight.Bold)
+                                    Text(Strings.get("cancel_booking"), fontWeight = FontWeight.Bold)
                                 }
 
                                 Spacer(modifier = Modifier.height(12.dp))
