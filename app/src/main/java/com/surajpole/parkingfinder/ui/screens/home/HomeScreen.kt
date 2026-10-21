@@ -38,6 +38,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -45,10 +46,8 @@ import com.google.maps.android.compose.*
 import com.surajpole.parkingfinder.data.local.Strings
 import com.surajpole.parkingfinder.data.model.ParkingLot
 import com.surajpole.parkingfinder.data.repository.ParkingRepository
-import com.surajpole.parkingfinder.data.service.DeviceHeadingTracker
 import com.surajpole.parkingfinder.data.service.RoadRoutingService
 import com.surajpole.parkingfinder.data.service.RouteResult
-import com.surajpole.parkingfinder.data.service.rememberDeviceHeading
 import com.surajpole.parkingfinder.ui.components.MapMarkerUtils
 import com.surajpole.parkingfinder.ui.components.VehicleSelectionDialog
 import com.surajpole.parkingfinder.ui.theme.EmeraldGreen
@@ -86,9 +85,6 @@ fun HomeScreen(
     // Live User Location state
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
 
-    // Gyroscope / Compass Heading for Directional Beam
-    val deviceHeading by rememberDeviceHeading()
-
     // Routing and vehicle state
     var pendingParkingForVehicle by remember { mutableStateOf<ParkingLot?>(null) }
     var activeRoute by remember { mutableStateOf<RouteResult?>(null) }
@@ -96,11 +92,6 @@ fun HomeScreen(
     var isTwoWheelerSelected by remember { mutableStateOf(false) }
     var isRoutingLoading by remember { mutableStateOf(false) }
     var is3DCameraMode by remember { mutableStateOf(false) }
-
-    // Derived zoom state for smart markers (High FPS, avoids recalculation)
-    val isZoomedIn by remember {
-        derivedStateOf { cameraPositionState.position.zoom >= 14.8f }
-    }
 
     // Location permissions
     val locationPermissionsState = rememberMultiplePermissionsState(
@@ -204,13 +195,13 @@ fun HomeScreen(
 
     // Clean, Full-Screen Map (Top bar removed per user request!)
     Box(modifier = Modifier.fillMaxSize()) {
-        // Google Map View (High FPS with Latest Vector Renderer)
+        // Google Map View (High FPS with Native Vector Renderer)
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(
                 mapType = currentMapType,
-                isMyLocationEnabled = false // Custom directional beacon dot used instead
+                isMyLocationEnabled = locationPermissionsState.allPermissionsGranted
             ),
             uiSettings = MapUiSettings(
                 myLocationButtonEnabled = false,
@@ -218,44 +209,25 @@ fun HomeScreen(
                 compassEnabled = true
             )
         ) {
-            // Cute & Attractive Parking Markers with Zoom-Dependent Names
+            val azureMarker = remember { BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE) }
+            val redMarker = remember { BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED) }
+
+            // Rock-solid, non-blinking, high-performance parking pins across Udaipur
             parkingLots.forEach { lot ->
                 val markerState = rememberMarkerState(
                     key = "lot_${lot.id}",
                     position = LatLng(lot.latitude, lot.longitude)
                 )
 
-                val descriptor = remember(lot.id, lot.availableSlots, isZoomedIn) {
-                    MapMarkerUtils.getCuteParkingDescriptor(lot, isZoomedIn)
-                }
-
                 Marker(
                     state = markerState,
                     title = lot.name,
                     snippet = "${lot.availableSlots} / ${lot.total_slots} ${Strings.get("slots_available")}",
-                    icon = descriptor,
+                    icon = if (lot.isFull) redMarker else azureMarker,
                     onClick = {
                         pendingParkingForVehicle = lot
                         true
                     }
-                )
-            }
-
-            // Google Maps-Style Directional User Dot (Compass & Gyroscope Fusion)
-            userLocation?.let { loc ->
-                val userMarkerState = rememberMarkerState(key = "user_gps_host", position = loc)
-                LaunchedEffect(loc) {
-                    userMarkerState.position = loc
-                }
-
-                Marker(
-                    state = userMarkerState,
-                    title = Strings.get("gps_live"),
-                    snippet = Strings.get("compass_active"),
-                    icon = remember { MapMarkerUtils.getUserDirectionalDescriptor() },
-                    anchor = Offset(0.5f, 0.5f),
-                    flat = true,
-                    rotation = deviceHeading ?: 0f
                 )
             }
 
