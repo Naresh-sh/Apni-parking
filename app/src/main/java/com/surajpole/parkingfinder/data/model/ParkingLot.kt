@@ -1,5 +1,6 @@
 package com.surajpole.parkingfinder.data.model
 
+import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.PropertyName
 
 data class ParkingLot(
@@ -14,9 +15,11 @@ data class ParkingLot(
     @set:PropertyName("filled_slots")
     var filled_slots: Long = 0L
 ) {
+    @get:Exclude
     val availableSlots: Long
         get() = (total_slots - filled_slots).coerceAtLeast(0L)
 
+    @get:Exclude
     val isFull: Boolean
         get() = availableSlots <= 0L
 }
