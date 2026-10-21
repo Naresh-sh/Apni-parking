@@ -12,8 +12,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,7 +20,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Refresh
@@ -343,13 +340,13 @@ fun HomeScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Satellite Mode Toggle FAB
+                // Map Mode Toggle FAB (Normal <-> Hybrid)
                 FloatingActionButton(
                     onClick = {
-                        currentMapType = when (currentMapType) {
-                            MapType.NORMAL -> MapType.SATELLITE
-                            MapType.SATELLITE -> MapType.HYBRID
-                            else -> MapType.NORMAL
+                        currentMapType = if (currentMapType == MapType.NORMAL) {
+                            MapType.HYBRID
+                        } else {
+                            MapType.NORMAL
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -359,7 +356,7 @@ fun HomeScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Layers,
-                        contentDescription = "Satellite Mode",
+                        contentDescription = "Map View Mode",
                         tint = if (currentMapType != MapType.NORMAL) EmeraldGreen else NavyPrimary,
                         modifier = Modifier.size(22.dp)
                     )
@@ -394,8 +391,8 @@ fun HomeScreen(
                 }
             }
 
-            // Satellite Mode Indicator Badge
-            if (currentMapType != MapType.NORMAL) {
+            // Hybrid Mode Indicator Badge
+            if (currentMapType == MapType.HYBRID) {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
                     color = Color.Black.copy(alpha = 0.7f),
@@ -404,7 +401,7 @@ fun HomeScreen(
                         .padding(top = 16.dp)
                 ) {
                     Text(
-                        text = if (currentMapType == MapType.SATELLITE) "🛰️ Satellite View" else "🛰️ Hybrid View",
+                        text = "🛰️ Hybrid View",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -441,30 +438,7 @@ fun HomeScreen(
                 }
             }
 
-            // Bottom horizontal carousel of nearby parking lots (shown when no route active)
-            AnimatedVisibility(
-                visible = activeRoute == null && parkingLots.isNotEmpty(),
-                enter = slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(parkingLots) { lot ->
-                        ParkingQuickCard(
-                            lot = lot,
-                            onClick = {
-                                pendingParkingForVehicle = lot
-                            }
-                        )
-                    }
-                }
-            }
+
 
             // Route Calculation Progress
             if (isRoutingLoading) {
@@ -578,84 +552,4 @@ fun ActiveRouteCard(
     }
 }
 
-@Composable
-fun ParkingQuickCard(
-    lot: ParkingLot,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .width(260.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(NavyPrimary.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocalParking,
-                        contentDescription = null,
-                        tint = NavyPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
 
-                Spacer(modifier = Modifier.width(10.dp))
-
-                Text(
-                    text = lot.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Available Slots",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        text = "${lot.availableSlots} / ${lot.total_slots}",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (lot.isFull) RedDanger else EmeraldGreen
-                    )
-                }
-
-                Surface(
-                    color = (if (lot.isFull) RedDanger else EmeraldGreen).copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = if (lot.isFull) "FULL" else "TAP FOR ROUTE",
-                        color = if (lot.isFull) RedDanger else EmeraldGreen,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-        }
-    }
-}
