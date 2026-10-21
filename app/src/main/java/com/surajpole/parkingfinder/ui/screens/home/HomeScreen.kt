@@ -48,7 +48,6 @@ import com.surajpole.parkingfinder.data.model.ParkingLot
 import com.surajpole.parkingfinder.data.repository.ParkingRepository
 import com.surajpole.parkingfinder.data.service.RoadRoutingService
 import com.surajpole.parkingfinder.data.service.RouteResult
-import com.surajpole.parkingfinder.ui.components.MapMarkerUtils
 import com.surajpole.parkingfinder.ui.components.VehicleSelectionDialog
 import com.surajpole.parkingfinder.ui.theme.EmeraldGreen
 import com.surajpole.parkingfinder.ui.theme.NavyPrimary
@@ -103,15 +102,15 @@ fun HomeScreen(
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    // High FPS smooth GPS polling: updates every 1.5s
+    // Stable GPS polling: updates when moving (5m threshold)
     DisposableEffect(locationPermissionsState.allPermissionsGranted) {
         if (locationPermissionsState.allPermissionsGranted) {
             val locationRequest = LocationRequest.Builder(
-                Priority.PRIORITY_HIGH_ACCURACY,
-                2000L
+                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                5000L
             ).apply {
-                setMinUpdateIntervalMillis(1500L)
-                setMinUpdateDistanceMeters(1.0f)
+                setMinUpdateIntervalMillis(3000L)
+                setMinUpdateDistanceMeters(5.0f)
                 setWaitForAccurateLocation(false)
             }.build()
 

@@ -8,6 +8,7 @@ import com.surajpole.parkingfinder.data.model.ParkingLot
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
 
 class ParkingRepository(
@@ -255,7 +256,7 @@ class ParkingRepository(
             }
         }
         awaitClose { listener.remove() }
-    }
+    }.distinctUntilChanged()
 
     // Real-time flow of a single parking lot
     fun observeParkingLot(lotId: String): Flow<ParkingLot?> = callbackFlow {
